@@ -12,17 +12,16 @@
 mod context;
 mod switch;
 #[allow(clippy::module_inception)]
-mod task;
+11111111111mod task;
 
 use crate::loader::{get_app_data, get_num_app};
+use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
-use crate::syscall::{INIT_TIME_LIST, TASK_INFO_LIST};
-use crate::timer::get_time_ms;
 use crate::trap::TrapContext;
 use alloc::vec::Vec;
 use lazy_static::*;
 use switch::__switch;
-pub use task::{TaskControlBlock, TaskStatus};
+use task::{TaskControlBlock, TaskStatus};
 
 pub use context::TaskContext;
 
@@ -65,7 +64,6 @@ lazy_static! {
             inner: unsafe {
                 UPSafeCell::new(TaskManagerInner {
                     tasks,
-
                     current_task: 0,
                 })
             },

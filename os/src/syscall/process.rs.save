@@ -1,14 +1,9 @@
 //! Process management syscalls
-use core::mem::{self, size_of};
 use crate::{
     config::MAX_SYSCALL_NUM,
-    mm::{translated_byte_buffer, MapPermission, VirtAddr, VirtPageNum},
-    syscall::TASK_INFO_LIST,
     task::{
-         change_program_brk, current_user_token, exit_current_and_run_next,
-        suspend_current_and_run_next, TaskStatus, TASK_MANAGER,
+        change_program_brk, exit_current_and_run_next, suspend_current_and_run_next, TaskStatus,
     },
-    timer::get_time_us,
 };
 
 #[repr(C)]
@@ -20,32 +15,13 @@ pub struct TimeVal {
 
 /// Task information
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
 pub struct TaskInfo {
     /// Task status in it's life cycle
     status: TaskStatus,
     /// The numbers of syscall called by task
-    pub syscall_times: [u32; MAX_SYSCALL_NUM],
+    syscall_times: [u32; MAX_SYSCALL_NUM],
     /// Total running time of task
     time: usize,
-}
-impl TaskInfo {
-    pub fn new() -> Self {
-        TaskInfo {
-            status: TaskStatus::Ready,
-            syscall_times: [0; MAX_SYSCALL_NUM],
-            time: 0,
-        }
-    }
-    pub fn set_status(&mut self, status: TaskStatus) {
-        self.status = status;
-    }
-    pub fn add_syscall_time(&mut self, syscall: usize) {
-        self.syscall_times[syscall] += 1;
-    }
-    pub fn set_time(&mut self, task_start: usize, task_syscall: usize) {
-        self.time = task_syscall - task_start;
-    }
 }
 
 /// task exits and submit an exit code
@@ -68,7 +44,8 @@ pub fn sys_yield() -> isize {
 pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
     trace!("kernel: sys_get_time");
     //step1
-    let mut buffers = translated_byte_buffer(current_user_token(), _ts as *const u8, size_of::<TimeVal>());
+    let mut buffers =
+        translated_byte_buffer(current_user_token(), _ts as *const u8, size_of::<TimeVal>());
     //step2
     let us = get_time_us();
     let sec = us / 1_000_000;
@@ -93,105 +70,41 @@ pub fn sys_get_time(_ts: *mut TimeVal, _tz: usize) -> isize {
     0
 }
 
-
 /// YOUR JOB: Finish sys_task_info to pass testcases
 /// HINT: You might reimplement it with virtual memory management.
 /// HINT: What if [`TaskInfo`] is splitted by two pages ?
 pub fn sys_task_info(_ti: *mut TaskInfo) -> isize {
-       trace!("kernel: sys_task_info NOT IMPLEMENTED YET!");
-    //step1
+    trace!("kernel: sys_task_info NOT IMPLEMENTED YET!");
     let current = TASK_MANAGER.get_current_task();
     let task_info_list = TASK_INFO_LIST.exclusive_access();
     let current_task_info = &task_info_list[current];
     let current_task_info_byte: [u8; mem::size_of::<TaskInfo>()] =
-        unsafe { mem::transmute(*current_task_info) };
-    //step2
+        unsafe { mem::transmute(*current_task_info) }
     let mut buffers = translated_byte_buffer(
         current_user_token(),
         _ti as *const u8,
         size_of::<TaskInfo>(),
     );
-    //step3
     if buffers[0].len() < size_of::<TaskInfo>() {
         let len = buffers[0].len();
         buffers[0].copy_from_slice(&current_task_info_byte[..len]);
-        buffers[1][..(size_of::<TaskInfo>() - len)].copy_from_slice(&current_task_info_byte[len..]);
+        buffers[1][..(size_of::() - len)].copy_from_slice(&current_task_info_byte[len..]);
     } else {
-        buffers[0][..size_of::<TaskInfo>()].copy_from_slice(&current_task_info_byte);
+        buffers[0][..size_of::()].copy_from_slice(&current_task_info_byte);
     }
     0
 }
 
 // YOUR JOB: Implement mmap.
 pub fn sys_mmap(_start: usize, _len: usize, _port: usize) -> isize {
-     trace!("kernel: sys_mmap NOT IMPLEMENTED YET!");
-    //step1
-    if _start % 4096 != 0 {
-        return -1;
-    }
-    if _port & 0b111 != _port || _port & 0b111 == 0 {
-        return -1;
-    }
-    if _len == 0 {
-        return 0;
-    }
-    //step2
-    let current = TASK_MANAGER.get_current_task();
-    let tcb = TASK_MANAGER.get_task(current);
-    let start_va = VirtAddr::from(_start);
-    let end_va = VirtAddr::from(_start + _len);
-    let start_vpn: VirtPageNum = start_va.floor();
-    let end_vpn: VirtPageNum = end_va.ceil();
-    if tcb.memory_set.check_overlap(start_vpn,end_vpn){
-        return -1;
-    }
-    //step3
-    let mut map_perm = MapPermission::U;
-    if _port & 0b001 != 0 {
-        map_perm |= MapPermission::R;
-    }
-    if _port & 0b010 != 0 {
-        map_perm |= MapPermission::W;
-    }
-    if _port & 0b100 != 0 {
-        map_perm |= MapPermission::X;
-    }
-    //step4
-    tcb.memory_set
-        .insert_framed_area(start_va, end_va, map_perm);
-    0
+    trace!("kernel: sys_mmap NOT IMPLEMENTED YET!");
+    -1
 }
 
 // YOUR JOB: Implement munmap.
 pub fn sys_munmap(_start: usize, _len: usize) -> isize {
-     trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
-    //step1
-    if _start % 4096 != 0 {
-        return -1;
-    }
-    if _len == 0 {
-        return 0;
-    }
-    //step2
-    let current = TASK_MANAGER.get_current_task();
-    let tcb = TASK_MANAGER.get_task(current);
-    let start_va = VirtAddr::from(_start);
-    let end_va = VirtAddr::from(_start + _len);
-    let start_vpn: VirtPageNum = start_va.floor();
-    let end_vpn: VirtPageNum = end_va.ceil();
-    //step3
-    for vpn in start_vpn.0..end_vpn.0{
-        if let Some(pet) = tcb.memory_set.translate(vpn.into()){
-            if !pet.is_valid(){
-                return -1;
-            }
-        }else{
-            return -1;
-        }
-    }
-    //step4
-    tcb.memory_set.unmap(start_vpn, end_vpn);
-    0
+    trace!("kernel: sys_munmap NOT IMPLEMENTED YET!");
+    -1
 }
 /// change data segment size
 pub fn sys_sbrk(size: i32) -> isize {
