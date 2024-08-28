@@ -26,8 +26,30 @@ mod process;
 
 use fs::*;
 use process::*;
+
+use crate::config::MAX_APP_NUM;
+use crate::sync::UPSafeCell;
+use crate::task::TASK_MANAGER;
+use crate::timer::get_time_ms;
+use lazy_static::*;
+
+const SYSCALL_TYPE: [usize; SYSCALL_TYPE_NUM] = [
+    SYSCALL_WRITE,
+    SYSCALL_EXIT,
+    SYSCALL_YIELD,
+    SYSCALL_GET_TIME,
+    SYSCALL_TASK_INFO,
+];
+static mut SYS_CALL_COUNT: [u32; MAX_SYSCALL_NUM] = [0; MAX_SYSCALL_NUM];
+
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+     unsafe {
+        if id < MAX_SYSCALL_NUM {
+            SYS_CALL_COUNT[id] += 1;
+        }
+    }
+
     match syscall_id {
         SYSCALL_WRITE => sys_write(args[0], args[1] as *const u8, args[2]),
         SYSCALL_EXIT => sys_exit(args[0] as i32),
@@ -37,3 +59,4 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }
+
