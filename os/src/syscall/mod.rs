@@ -21,7 +21,7 @@ const SYSCALL_GET_TIME: usize = 169;
 /// taskinfo syscall
 const SYSCALL_TASK_INFO: usize = 410;
 
-const SYSCALL_TYPE_NUM: usize = 5;
+//const SYSCALL_TYPE_NUM: usize = 5;
 
 mod fs;
 mod process;
@@ -32,13 +32,13 @@ use process::*;
 use crate::config::MAX_SYSCALL_NUM;
 
 
-const SYSCALL_TYPE: [usize; SYSCALL_TYPE_NUM] = [
-    SYSCALL_WRITE,
-    SYSCALL_EXIT,
-    SYSCALL_YIELD,
-    SYSCALL_GET_TIME,
-    SYSCALL_TASK_INFO,
-];
+//const SYSCALL_TYPE: [usize; SYSCALL_TYPE_NUM] = [
+//    SYSCALL_WRITE,
+//    SYSCALL_EXIT,
+//    SYSCALL_YIELD,
+//    SYSCALL_GET_TIME,
+//    SYSCALL_TASK_INFO,
+//];
 static mut SYS_CALL_COUNT: [u32; MAX_SYSCALL_NUM] = [0; MAX_SYSCALL_NUM];
 
 /// handle syscall exception with `syscall_id` and other arguments

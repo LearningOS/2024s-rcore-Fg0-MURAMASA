@@ -14,11 +14,6 @@ pub struct TimeVal {
 const MAX_SYSCALL_NUM: usize = 500;
 
 
-pub struct TaskControlBlock {
-    pub status: TaskStatus,
-    pub syscall_counts: [u32; MAX_SYSCALL_NUM],
-    pub start_time: usize, 
-}
 
 /// Task information
 #[allow(dead_code)]
@@ -65,7 +60,8 @@ pub fn sys_task_info(_ti: *mut TaskInfo) -> isize {
     unsafe {
      let current = TASK_MANAGER.get_current_task();
      let current_task =  TASK_MANAGER.get_the_task(current);
-        if let task = current_task {
+        //if let task = current_task {
+	    let task = current_task;
             let current_time_us = get_time_us();
             let current_time = current_time_us / 1000;
             let running_time = current_time - task.start_time;
@@ -76,8 +72,8 @@ pub fn sys_task_info(_ti: *mut TaskInfo) -> isize {
             task_info.time = running_time as usize;
 
             0
-        } else {
-            -1
-        }
+        //} else {
+          //  -1
+        //}
     }
 }

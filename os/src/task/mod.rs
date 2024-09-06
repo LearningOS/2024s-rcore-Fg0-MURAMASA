@@ -14,7 +14,9 @@ mod switch;
 #[allow(clippy::module_inception)]
 mod task;
 
+use crate::timer::get_time_us;
 use crate::config::MAX_APP_NUM;
+use crate::config::MAX_SYSCALL_NUM;
 use crate::loader::{get_num_app, init_app_cx};
 use crate::sync::UPSafeCell;
 use lazy_static::*;
@@ -54,6 +56,8 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+    	    start_time: 0,
+    	    syscall_counts: [0; MAX_SYSCALL_NUM],
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -73,14 +77,14 @@ lazy_static! {
 
 impl TaskManager {
 
-
+    ///获取任务id用
     pub fn get_current_task(&self) -> usize{
        self.inner.access().current_task
     }
-
-    pub fn get_the_task(&self, current: usize) -> TaskControlBlock{
-       self.inner.access().tasks[current]
-    }
+    ///获取TaskControBlock用
+    pub fn get_the_task(&self, current: usize) -> TaskControlBlock {
+    self.inner.access().tasks[current].clone()
+}
 
 
     /// Run the first task in task list.
@@ -91,6 +95,10 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let task0 = &mut inner.tasks[0];
         task0.task_status = TaskStatus::Running;
+	//设置start_time
+        task0.start_time = get_time_us() as usize;
+	//syscall_counts的初始化
+	task0.syscall_counts = [0; MAX_SYSCALL_NUM];
         let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
         let mut _unused = TaskContext::zero_init();
@@ -133,6 +141,12 @@ impl TaskManager {
             let mut inner = self.inner.exclusive_access();
             let current = inner.current_task;
             inner.tasks[next].task_status = TaskStatus::Running;
+	    if inner.tasks[next].start_time == 0{
+            	// 如果为0，则赋值为 get_time_ms() 的值, 并初始化
+            	inner.tasks[next].start_time = get_time_us() as usize;
+ 		inner.tasks[next].syscall_counts = [0; MAX_SYSCALL_NUM];
+        	
+	}
             inner.current_task = next;
             let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tasks[next].task_cx as *const TaskContext;
