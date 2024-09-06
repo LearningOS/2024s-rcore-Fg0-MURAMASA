@@ -167,18 +167,39 @@ pub fn sys_sbrk(size: i32) -> isize {
 /// YOUR JOB: Implement spawn.
 /// HINT: fork + exec =/= spawn
 pub fn sys_spawn(_path: *const u8) -> isize {
-    trace!(
+     trace!(
         "kernel:pid[{}] sys_spawn NOT IMPLEMENTED",
         current_task().unwrap().pid.0
     );
-    -1
+//step1: 获取token, 利用token和_path获取path
+    let token = current_user_token();
+    let path = translated_str(token, _path);
+    if let Some(data) = get_app_data_by_name(path.as_str()) {
+//step2: 创建了一个task
+        let new_task:Arc<TaskControlBlock> = TaskControlBlock::new(&data).into();
+//step3: 将child111加入当前任务的children中
+        let binding = current_task().unwrap();
+        let mut parent_inner = binding.inner_exclusive_access();
+        parent_inner.children.push(new_task.clone());
+//step4: 将task加入scheduler
+        let newpid = new_task.pid.0;
+        add_task(new_task);
+        newpid as isize
+    } else {
+        -1
+    }
 }
 
 // YOUR JOB: Set task priority.
 pub fn sys_set_priority(_prio: isize) -> isize {
-    trace!(
+     trace!(
         "kernel:pid[{}] sys_set_priority NOT IMPLEMENTED",
         current_task().unwrap().pid.0
     );
-    -1
+    if _prio < 2{
+        return -1;
+    }
+    let tcb = current_task().unwrap();
+    tcb.set_priority(_prio);
+    _prio
 }

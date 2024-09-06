@@ -34,6 +34,31 @@ impl TaskControlBlock {
         let inner = self.inner_exclusive_access();
         inner.memory_set.token()
     }
+
+ /// 设置优先级
+    pub fn set_priority(&self, priority: isize) {
+        let mut _priority = self.priority.exclusive_access();
+        *_priority = priority;
+    }
+    /// 设置stride
+    pub fn set_stride(&self, stride: isize) {
+        let mut _stride = self.stride.exclusive_access();
+        *_stride = stride;
+    }
+    /// pass: 更新stride
+    pub fn pass(&self) {
+        let mut _stride 
+	self.stride.exclusive_access();
+        let priority = self.priority.exclusive_access();
+        if BIG_STRIDE / *priority < isize::MAX - *_stride {
+            *_stride += BIG_STRIDE / *priority;
+        }
+    }
+    /// 获取stride的大小
+    pub fn get_stride(&self) -> isize {
+        let stride = self.stride.exclusive_access();
+        *stride
+    }
 }
 
 pub struct TaskControlBlockInner {
