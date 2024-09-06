@@ -1,7 +1,5 @@
 //! Process management syscalls
 use crate::{
-    config::MAX_SYSCALL_NUM,
-    syscall::TASK_INFO_LIST,
     task::{exit_current_and_run_next, suspend_current_and_run_next, TaskStatus, TASK_MANAGER},
     timer::get_time_us,
 };
@@ -15,9 +13,6 @@ pub struct TimeVal {
 
 const MAX_SYSCALL_NUM: usize = 500;
 
-pub enum TaskStatus {
-    Running,
-}
 
 pub struct TaskControlBlock {
     pub status: TaskStatus,
@@ -36,11 +31,6 @@ pub struct TaskInfo {
     time: usize,
 }
 
-pub struct TaskInfo {
-    status: TaskStatus,
-    syscall_times: [u32; MAX_SYSCALL_NUM],
-    time: usize,
-}
 
 /// task exits and submit an exit code
 pub fn sys_exit(exit_code: i32) -> ! {
@@ -72,22 +62,22 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
 /// YOUR JOB: Finish sys_task_info to pass testcases
 pub fn sys_task_info(_ti: *mut TaskInfo) -> isize {
      trace!("kernel: sys_task_info");
-      let current = TASK_MANAGER.get_current_task();
-
     unsafe {
-        if let Some(task) = current_task {
+     let current = TASK_MANAGER.get_current_task();
+     let current_task =  TASK_MANAGER.get_the_task(current);
+        if let task = current_task {
             let current_time_us = get_time_us();
             let current_time = current_time_us / 1000;
             let running_time = current_time - task.start_time;
 
-            let task_info = &mut *ti;
+            let task_info = &mut *_ti;
             task_info.status = TaskStatus::Running;
             task_info.syscall_times.copy_from_slice(&task.syscall_counts);
             task_info.time = running_time as usize;
 
-            0 
+            0
         } else {
-            -1 
+            -1
         }
     }
 }

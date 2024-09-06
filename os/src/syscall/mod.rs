@@ -21,17 +21,16 @@ const SYSCALL_GET_TIME: usize = 169;
 /// taskinfo syscall
 const SYSCALL_TASK_INFO: usize = 410;
 
+const SYSCALL_TYPE_NUM: usize = 5;
+
 mod fs;
 mod process;
 
 use fs::*;
 use process::*;
 
-use crate::config::MAX_APP_NUM;
-use crate::sync::UPSafeCell;
-use crate::task::TASK_MANAGER;
-use crate::timer::get_time_ms;
-use lazy_static::*;
+use crate::config::MAX_SYSCALL_NUM;
+
 
 const SYSCALL_TYPE: [usize; SYSCALL_TYPE_NUM] = [
     SYSCALL_WRITE,
@@ -45,8 +44,8 @@ static mut SYS_CALL_COUNT: [u32; MAX_SYSCALL_NUM] = [0; MAX_SYSCALL_NUM];
 /// handle syscall exception with `syscall_id` and other arguments
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
      unsafe {
-        if id < MAX_SYSCALL_NUM {
-            SYS_CALL_COUNT[id] += 1;
+        if syscall_id < MAX_SYSCALL_NUM {
+            SYS_CALL_COUNT[syscall_id] += 1;
         }
     }
 
